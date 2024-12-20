@@ -1,45 +1,44 @@
-/**
- * Copyright (C) 2023 Zuoqiu Yingyi
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- * 
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2023 Zuoqiu Yingyi
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+// 
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import "./main.less";
+
+import { Modal, Notification } from "@arco-design/web-vue";
+import { Client } from "@siyuan-community/siyuan-sdk";
+import { createApp } from "vue";
+import { createI18n } from "vue-i18n";
+
+import { mapLang } from "@workspace/utils/locale/language";
+import { Logger } from "@workspace/utils/logger";
+import { UA } from "@workspace/utils/misc/user-agent";
+import { relative } from "@workspace/utils/path/browserify";
+import { id } from "@workspace/utils/siyuan/id";
+import { auth } from "@workspace/utils/siyuan/url";
 
 /* 静态资源 */
 import manifest from "~/public/plugin.json";
-import "./main.less";
+import * as Constants from "~/src/constant";
 
 /* 语言包 */
 import en from "@/locales/en.json";
 import zh_Hans from "@/locales/zh-Hans.json";
 import zh_Hant from "@/locales/zh-Hant.json";
 
-import { createApp } from "vue";
-import { createI18n } from "vue-i18n";
-import { Modal, Notification } from '@arco-design/web-vue';
-import type { RoomUser } from "vue-advanced-chat";
-
-import { Client } from "@siyuan-community/siyuan-sdk";
-import { mapLang } from "@workspace/utils/locale/language";
-import { trimSuffix } from "@workspace/utils/misc/string";
-import { UA } from "@workspace/utils/misc/user-agent";
-import { auth } from "@workspace/utils/siyuan/url";
-import { id } from "@workspace/utils/siyuan/id";
-
-import { Logger } from "@workspace/utils/logger";
-
 import App from "./App.vue";
-import * as Constants from "~/src/constant";
+
+import type { RoomUser } from "vue-advanced-chat";
 
 (async () => {
     /* 日志记录器 */
@@ -53,7 +52,23 @@ import * as Constants from "~/src/constant";
     }
 
     /* 客户端 */
-    const baseURL = trimSuffix(globalThis.location.origin, `plugins/${manifest.name}/apps/client.html`);
+    const pathname_prefix = `/plugins/${manifest.name}/`; // 路径前缀
+    const pathname_parts = globalThis.location.pathname.split(pathname_prefix, 1);
+
+    const root_pathname = `${pathname_parts[0]}/`; // 思源内核服务根路径 (绝对路径)
+    const plugin_root_pathname = `${pathname_parts[0]}${pathname_prefix}`; // 插件目录根路径 (绝对路径)
+
+    const root_pathname_relative_ = relative(globalThis.location.pathname, root_pathname);
+    const plugin_root_pathname_relative_ = relative(globalThis.location.pathname, plugin_root_pathname);
+
+    const root_pathname_relative = root_pathname_relative_
+        ? `./${root_pathname_relative_}/`
+        : `./`; // 思源内核服务根路径 (相对路径)
+    const plugin_root_pathname_relative = plugin_root_pathname_relative_
+        ? `./${plugin_root_pathname_relative_}/`
+        : `./`; // 插件目录根路径 (相对路径)
+
+    const baseURL = new URL(root_pathname, location.origin).href;
     const client = new Client({
         baseURL,
     }, "fetch");
@@ -61,8 +76,11 @@ import * as Constants from "~/src/constant";
     try {
         /* 验证是否已通过认证 */
         const response = await client.echo({ method: "POST" });
-        var ip = response.data.Context.ClientIP || response.data.Context.RemoteIP;
-    } catch (error) {
+        const ip = response.data.Context.ClientIP || response.data.Context.RemoteIP;
+        void ip;
+    }
+    catch (error) {
+        void error;
         auth(); // 跳转到认证页面
         return;
     }
@@ -89,27 +107,27 @@ import * as Constants from "~/src/constant";
     const avatar = ((browser: string) => {
         switch (true) {
             case browser.includes("chrome"):
-                return "./../icons/chrome.svg";
+                return `${plugin_root_pathname_relative}icons/chrome.svg`;
             case browser.includes("chromium"):
-                return "./../icons/chromium.svg";
+                return `${plugin_root_pathname_relative}icons/chromium.svg`;
             case browser.includes("edge"):
-                return "./../icons/edge.svg";
+                return `${plugin_root_pathname_relative}icons/edge.svg`;
             case browser.includes("electron"):
-                return "./../icons/electron.svg";
+                return `${plugin_root_pathname_relative}icons/electron.svg`;
             case browser.includes("firefox"):
-                return "./../icons/firefox.svg";
+                return `${plugin_root_pathname_relative}icons/firefox.svg`;
             case browser.includes("opera"):
-                return "./../icons/opera.svg";
+                return `${plugin_root_pathname_relative}icons/opera.svg`;
             case browser.includes("safari"):
-                return "./../icons/safari.svg";
+                return `${plugin_root_pathname_relative}icons/safari.svg`;
             case browser.includes("uc"):
-                return "./../icons/uc.svg";
+                return `${plugin_root_pathname_relative}icons/uc.svg`;
             case browser.includes("vivaldi"):
-                return "./../icons/vivaldi.svg";
+                return `${plugin_root_pathname_relative}icons/vivaldi.svg`;
             case browser.includes("webkit"):
-                return "./../icons/webkit.svg";
+                return `${plugin_root_pathname_relative}icons/webkit.svg`;
             default:
-                return "./../icons/siyuan.svg";
+                return `${plugin_root_pathname_relative}icons/siyuan.svg`;
         }
     })(String(UA.browser.name).toLowerCase());
 
@@ -123,7 +141,7 @@ import * as Constants from "~/src/constant";
                 return current_user;
             }
             else {
-                throw new Error();
+                throw new Error("Current user information not found");
             }
         }
         catch {
@@ -135,7 +153,7 @@ import * as Constants from "~/src/constant";
                 UA.device.type,
                 // ip,
                 current_user_id,
-            ].filter(s => !!s).join("-");
+            ].filter((s) => !!s).join("-");
             const current_user: RoomUser = {
                 _id: current_user_id,
                 username,
@@ -167,6 +185,8 @@ import * as Constants from "~/src/constant";
     app.provide("locale", locale);
     app.provide("logger", logger);
     app.provide("client", client);
+    app.provide("root-pathname", root_pathname_relative);
+    app.provide("plugin-root-pathname", plugin_root_pathname_relative);
 
     /**
      * 设置全局组件上下文

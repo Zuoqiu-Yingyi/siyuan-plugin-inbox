@@ -1,29 +1,39 @@
 <!--
  Copyright (C) 2024 Zuoqiu Yingyi
- 
+
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU Affero General Public License as
  published by the Free Software Foundation, either version 3 of the
  License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU Affero General Public License for more details.
- 
+
  You should have received a copy of the GNU Affero General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <!-- 图标输入框 -->
 <script setup lang="ts">
-import { inject, shallowRef, watch } from "vue";
-import { Avatar, Divider, Input } from "@arco-design/web-vue";
+import {
+    Avatar,
+    Divider,
+    Input,
+} from "@arco-design/web-vue";
+import {
+    inject,
+    shallowRef,
+    watch,
+} from "vue";
+
 import { isStaticPathname } from "@workspace/utils/siyuan/url";
 
 import type { Client } from "@siyuan-community/siyuan-sdk";
 
 const client = inject("client") as Client;
+const root_pathname = inject("root-pathname") as string;
 
 const avatar = defineModel<string>("avatar", { required: true });
 
@@ -35,7 +45,7 @@ const input_error = shallowRef<boolean>(false);
 const camera_input = document.createElement("input");
 camera_input.type = "file";
 camera_input.accept = "image/*";
-camera_input.addEventListener("change", async e => {
+camera_input.addEventListener("change", async (_e) => {
     const image = camera_input.files?.item(0);
     if (image) {
         const path = `public/inbox/avatar/${image.name}`;
@@ -43,13 +53,14 @@ camera_input.addEventListener("change", async e => {
             file: image,
             path: `data/${path}`,
         });
+        // eslint-disable-next-line ts/no-use-before-define
         onInputChange(path);
     }
 });
 
 watch(
     avatar,
-    value => {
+    (value) => {
         avatar_src.value = value;
         input_value.value = value;
     },
@@ -85,14 +96,14 @@ function onAvatarError(): void {
 
 /**
  * 输入框中内容更改
- * @param value 输入框中的内容
+ * @param value - 输入框中的内容
  */
 function onInputChange(value: string): void {
     // console.debug("onInputChange", arguments);
 
     if (isStaticPathname(value) && !value.startsWith("/")) {
         // 处理静态资源相对路径
-        value = `./../../../${value}`;
+        value = `${root_pathname}${value}`;
         input_value.value = value;
     }
     avatar.value = value;
@@ -102,9 +113,9 @@ function onInputChange(value: string): void {
 
 <template>
     <Avatar
+        :size="32"
         class="flex-shrink-0"
         trigger-type="mask"
-        :size="32"
         @click="onAvatarClick"
     >
         <div
@@ -118,7 +129,7 @@ function onInputChange(value: string): void {
             :src="avatar_src"
             @load="onAvatarLoad"
             @error="onAvatarError"
-        />
+        >
         <template #trigger-icon>
             <!-- 点击图标以上传图片文件 -->
             <IconUpload />

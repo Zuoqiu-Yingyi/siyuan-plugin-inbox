@@ -1,40 +1,59 @@
 <!--
  Copyright (C) 2023 Zuoqiu Yingyi
- 
+
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU Affero General Public License as
  published by the Free Software Foundation, either version 3 of the
  License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU Affero General Public License for more details.
- 
+
  You should have received a copy of the GNU Affero General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <script setup lang="ts">
-import { inject, shallowRef, reactive, watch, onMounted } from "vue";
-import { register, type VueAdvancedChat, type RoomUser, type Room, type Message, type Props } from "vue-advanced-chat";
+import {
+    inject,
+    onMounted,
+    reactive,
+    shallowRef,
+    watch,
+} from "vue";
+import {
+    register,
+    type Message,
+    type Props,
+    type Room,
+    type RoomUser,
+} from "vue-advanced-chat";
 
-import { FLAG_LIGHT, MEDIA_QUERY_LIST } from "@workspace/utils/env/native-front-end";
 import ArcoConfigProvider from "@workspace/components/arco/ArcoConfigProvider.vue";
-
-import InboxRoomInfoDialog from "@/components/InboxRoomInfoDialog.vue";
-import InboxUserInfoDialog from "@/components/InboxUserInfoDialog.vue";
-import InboxRoomSelectDialog from "@/components/InboxRoomSelectDialog.vue";
-import InboxMenu from "@/components/InboxMenu.vue";
-import InboxTextareaMenu from "@/components/InboxTextareaMenu.vue";
+import {
+    FLAG_LIGHT,
+    MEDIA_QUERY_LIST,
+} from "@workspace/utils/env/native-front-end";
+import { deepClone } from "@workspace/utils/misc/clone";
 
 import * as Constants from "@/constant";
 import { Control } from "@/messages/control";
 
-import type { I18n, VueI18nTranslation } from "vue-i18n";
-import type { Logger } from "@workspace/utils/logger";
+import InboxMenu from "@/components/InboxMenu.vue";
+import InboxRoomInfoDialog from "@/components/InboxRoomInfoDialog.vue";
+import InboxRoomSelectDialog from "@/components/InboxRoomSelectDialog.vue";
+import InboxTextareaMenu from "@/components/InboxTextareaMenu.vue";
+import InboxUserInfoDialog from "@/components/InboxUserInfoDialog.vue";
+
 import type { Client } from "@siyuan-community/siyuan-sdk";
-import { deepClone } from "@workspace/utils/misc/clone";
+import type {
+    I18n,
+    VueI18nTranslation,
+} from "vue-i18n";
+
+import type { Logger } from "@workspace/utils/logger";
 
 register();
 const vue_advanced_chat = shallowRef<HTMLElement | null>(null);
@@ -44,6 +63,8 @@ const i18n = inject("i18n") as I18n;
 const locale = inject("locale") as string;
 const logger = inject("logger") as Logger;
 const client = inject("client") as Client;
+const root_pathname = inject("root-pathname") as string;
+const plugin_root_pathname = inject("plugin-root-pathname") as string;
 const t = i18n.global.t as VueI18nTranslation;
 
 /* emoji-picker-element-data 表情 emoji 数据语言标记 */
@@ -54,7 +75,7 @@ const picker_locale: string = (() => {
             return "zh";
         case "zh-hant":
             return "zh-hant";
-        default:
+        default: {
             const language = globalThis.navigator.language.toLowerCase();
             for (const lang of ["bn", "da", "de", "en", "en-gb", "es", "es-mx", "et", "fi", "fr", "hi", "hu", "it", "ja", "ko", "lt", "ms", "nb", "nl", "pl", "pt", "ru", "sv", "th", "uk", "zh", "zh-hant"].reverse()) {
                 if (language.startsWith(lang)) {
@@ -62,12 +83,15 @@ const picker_locale: string = (() => {
                 }
             }
             return "en";
+        }
     }
 })();
 
 /* Arco Design 本地化语言标记 */
 
-const emoji_data_source: string = globalThis.isSecureContext ? `./../libs/emoji-picker-element-data/${locale}/cldr/data.json` : `https://fastly.jsdelivr.net/npm/emoji-picker-element-data/${picker_locale}/cldr/data.json`; // 表情数据源, 非安全上下文中需要校验 ETag
+const emoji_data_source: string = globalThis.isSecureContext //
+    ? `${plugin_root_pathname}libs/emoji-picker-element-data/${locale}/cldr/data.json`
+    : `https://fastly.jsdelivr.net/npm/emoji-picker-element-data/${picker_locale}/cldr/data.json`; // 表情数据源, 非安全上下文中需要校验 ETag
 const text_messages = {
     // 界面文本本地化
     CANCEL_SELECT_MESSAGE: t("CANCEL_SELECT_MESSAGE"),
@@ -134,12 +158,12 @@ const menu_actions: Props["menu-actions"] = [
 ]; // 聊天面板菜单 (派遣 menu-action-handler 事件)
 const message_actions: Props["message-actions"] = [
     {
-        // 复制消息
+        // 复制消息 (派遣 message-action-handler 时间)
         name: "message-copy",
         title: t("actions.message.copy"),
     },
     {
-        // 转发消息
+        // 转发消息 (派遣 message-action-handler 时间)
         name: "message-forward",
         title: t("actions.message.forward"),
     },
@@ -157,6 +181,12 @@ const message_actions: Props["message-actions"] = [
         // 编辑消息 (内部处理)
         name: "editMessage",
         title: t("actions.message.edit"),
+        onlyMe: true,
+    },
+    {
+        // 撤回消息 (派遣 message-action-handler 时间)
+        name: "message-withdraw",
+        title: t("actions.message.withdraw"),
         onlyMe: true,
     },
     {
@@ -191,12 +221,12 @@ const username_options: Props["username-options"] = {
 const main = reactive<Room>({
     roomId: Constants.MAIN_ROOM_ID,
     roomName: t("inbox"),
-    avatar: Constants.ICON_FILE_PATH,
+    avatar: `${plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
     users: [deepClone()(user)],
     index: 0,
 }); // 主收集箱
-const theme = shallowRef<"light" | "dark">(FLAG_LIGHT ? "light" : "dark"); // 主题
-const roomId = shallowRef<string | null>(null); // 当前聊天室 ID
+const theme = shallowRef<"dark" | "light">(FLAG_LIGHT ? "light" : "dark"); // 主题
+const roomId = shallowRef<null | string>(null); // 当前聊天室 ID
 const rooms = shallowRef<Room[]>([]); // 当前用户所在的聊天室列表
 const roomsLoaded = shallowRef<boolean>(false); // 聊天室列表是否加载完成
 const messages = shallowRef<Message[]>([]); // 当前聊天室消息列表
@@ -210,25 +240,28 @@ const roomSelectDialogVisible = shallowRef<boolean>(false); // 是否显示聊�
 const roomUserInfoDialogVisible = shallowRef<boolean>(false); // 是否显示用户信息对话框
 
 const control = new Control(
-    t, //
-    client, //
-    logger, //
-    user, //
-    main, //
+    t,
+    client,
+    logger,
+    user,
+    main,
 
-    rooms, //
-    messages, //
-    roomId, //
-    currentRoom, //
-    currentRoomUser, //
+    root_pathname,
+    plugin_root_pathname,
 
-    roomInfoDialogVisible, //
-    roomSelectDialogVisible, //
-    roomUserInfoDialogVisible, //
+    rooms,
+    messages,
+    roomId,
+    currentRoom,
+    currentRoomUser,
+
+    roomInfoDialogVisible,
+    roomSelectDialogVisible,
+    roomUserInfoDialogVisible,
 );
 
 /* 监听系统主题更改 */
-MEDIA_QUERY_LIST.light.addEventListener("change", e => {
+MEDIA_QUERY_LIST.light.addEventListener("change", (e) => {
     theme.value = e.matches ? "light" : "dark";
 });
 
@@ -245,10 +278,11 @@ watch(rooms, () => {
     roomsLoaded.value = true;
 });
 
-watch(messages, messages => {
+watch(messages, (messages) => {
     if (messages.length > 0) {
         messagesLoaded.value = true;
-    } else {
+    }
+    else {
         /* 避免无消息时一直处于加载状态 */
         messagesLoaded.value = false;
 
@@ -266,7 +300,7 @@ onMounted(async () => {
 
 /**
  * 选择文件列表
- * @param files 文件列表
+ * @param files - 文件列表
  */
 function onSelectFiles(files: FileList | null): void {
     // logger.debug(files);
@@ -275,7 +309,8 @@ function onSelectFiles(files: FileList | null): void {
         const vac_col_messages = vue_advanced_chat.value?.shadowRoot?.querySelector(".vac-col-messages");
         if (vac_col_messages) {
             const dataTransfer = new DataTransfer();
-            for (const file of files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files.item(i)!;
                 dataTransfer.items.add(file);
             }
 
@@ -310,7 +345,6 @@ function onSelectFiles(files: FileList | null): void {
     />
     <vue-advanced-chat
         ref="vue_advanced_chat"
-        height="100vh"
         :room-id="roomId"
         :rooms-loaded="roomsLoaded"
         :messages-loaded="messagesLoaded"
@@ -334,6 +368,7 @@ function onSelectFiles(files: FileList | null): void {
         :menu-actions.prop="menu_actions"
         :message-actions.prop="message_actions"
         :message-selection-actions.prop="message_selection_actions"
+        height="100vh"
         @fetch-more-rooms="control.handler"
         @toggle-rooms-list="control.handler"
         @add-room="control.handler"
@@ -355,19 +390,21 @@ function onSelectFiles(files: FileList | null): void {
         @typing-message="control.handler"
     >
         <!-- 自定义添加按钮 -->
-        <span
-            class="icon"
-            slot="add-icon"
-        >
-            <InboxMenu @click="control.onClickMenuItem" />
-        </span>
+        <template #add-icon>
+            <span
+                class="icon"
+            >
+                <InboxMenu @click="control.onClickMenuItem" />
+            </span>
+        </template>
         <!-- 消息输入框的自定义按钮, 点击时触发 textarea-action-handler 事件 -->
-        <span
-            class="icon"
-            slot="custom-action-icon"
-        >
-            <InboxTextareaMenu @files="onSelectFiles" />
-        </span>
+        <template #custom-action-icon>
+            <span
+                class="icon"
+            >
+                <InboxTextareaMenu @files="onSelectFiles" />
+            </span>
+        </template>
     </vue-advanced-chat>
 </template>
 
