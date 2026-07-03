@@ -51,7 +51,7 @@ export default class InboxPlugin extends siyuan.Plugin {
 
     protected inboxDock!: {
         dock: ReturnType<siyuan.Plugin["addDock"]>;
-        model?: siyuan.Dock;
+        model?: siyuan.Custom | siyuan.MobileCustom;
         component?: ReturnType<typeof mount>;
     }; // 收集箱面板
 
@@ -157,6 +157,6 @@ export default class InboxPlugin extends siyuan.Plugin {
         if (config && config !== this.config) {
             this.config = config;
         }
-        return this.saveData(InboxPlugin.GLOBAL_CONFIG_NAME, JSON.stringify(this.config, undefined, 4));
+        this.saveData(InboxPlugin.GLOBAL_CONFIG_NAME, JSON.stringify(this.config, undefined, 4));
     }
 };

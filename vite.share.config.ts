@@ -16,14 +16,14 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { less } from "svelte-preprocess-less";
 import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vitejs.dev/config/
 export default defineConfig({
     base: `./`,
+    resolve: {
+        tsconfigPaths: true,
+    },
     plugins: [
-        // REF: https://www.npmjs.com/package/vite-tsconfig-paths
-        tsconfigPaths(),
         svelte({
             preprocess: {
                 style: less(),
