@@ -15,7 +15,7 @@
 
 import { resolve } from "node:path";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { less } from "svelte-preprocess-less";
+import { sveltePreprocess } from "svelte-preprocess";
 
 import type {
     UserConfig,
@@ -32,9 +32,12 @@ export const userConfigFn: UserConfigFnObject = function (env) {
         },
         plugins: [
             svelte({
-                preprocess: {
-                    style: less(),
-                },
+                preprocess: [
+                    sveltePreprocess({
+                        typescript: true,
+                        less: true,
+                    }),
+                ],
             }),
         ],
         build: {
