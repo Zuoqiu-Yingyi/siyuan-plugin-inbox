@@ -161,6 +161,10 @@ export const manifest = {
 export const userConfigFn: UserConfigFnObject = function (env) {
     const dev = env.mode.endsWith("dev");
     const config = {
+        base: `./`,
+        resolve: {
+            tsconfigPaths: true,
+        },
         plugins: [
             vue(),
             // REF: https://arco.design/vue/docs/start
@@ -216,12 +220,38 @@ export const userConfigFn: UserConfigFnObject = function (env) {
             }),
         ],
         build: {
+            minify: true,
             sourcemap: dev
                 ? "inline"
                 : false,
-            rollupOptions: {
+            emptyOutDir: false,
+            copyPublicDir: false,
+            rolldownOptions: {
                 input: {
                     index: resolve(__dirname, "./index.html"),
+                },
+                output: {
+                    entryFileNames: (entryInfo) => {
+                        // console.log(entryInfo);
+                        switch (entryInfo.name) {
+                            default:
+                                return "assets/[name]-[hash].js";
+                        }
+                    },
+                    chunkFileNames: (chunkInfo) => {
+                        // console.log(chunkInfo);
+                        switch (chunkInfo.name) {
+                            default:
+                                return "chunks/[name]-[hash].js";
+                        }
+                    },
+                    assetFileNames: (assetInfo) => {
+                        // console.log(chunkInfo);
+                        switch (assetInfo.name) {
+                            default:
+                                return "assets/[name]-[hash][extname]";
+                        }
+                    },
                 },
             },
         },

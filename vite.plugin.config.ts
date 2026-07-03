@@ -14,6 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { resolve } from "node:path";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { less } from "svelte-preprocess-less";
 
 import type {
     UserConfig,
@@ -24,9 +26,19 @@ import type {
 export const userConfigFn: UserConfigFnObject = function (env) {
     const dev = env.mode.endsWith("dev");
     const config = {
+        base: `./`,
+        resolve: {
+            tsconfigPaths: true,
+        },
         plugins: [
+            svelte({
+                preprocess: {
+                    style: less(),
+                },
+            }),
         ],
         build: {
+            minify: true,
             sourcemap: dev
                 ? "inline"
                 : false,
@@ -37,7 +49,11 @@ export const userConfigFn: UserConfigFnObject = function (env) {
                 fileName: "index",
                 formats: ["cjs"],
             },
-            rollupOptions: {
+            rolldownOptions: {
+                external: [
+                    "siyuan",
+                    /^@electron\/.*$/,
+                ],
                 input: {
                     index: resolve(__dirname, "src/index.ts"),
                 },

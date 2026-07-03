@@ -21,7 +21,6 @@ import {
 
 import viteAppsConfigFn from "./vite.apps.config";
 import vitePluginConfigFn from "./vite.plugin.config";
-import viteShareConfig from "./vite.share.config";
 
 // https://vitejs.dev/config/
 export default defineConfig(async (env) => {
@@ -40,8 +39,6 @@ export default defineConfig(async (env) => {
             config = await vitePluginConfigFn(env);
             break;
     }
-    config = deepmerge.all<UserConfig>([viteShareConfig, config]);
-
     // console.log(config);
     return config;
 });
