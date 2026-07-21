@@ -397,8 +397,8 @@ export class Control {
     /**
      * vue-advanced-chat 事件处理
      */
-    public async handler(e: CustomEvent) {
-        // this._logger.debug(e);
+    public readonly handler = async (e: CustomEvent) => {
+        this._logger.debug(e);
         await this._ready;
 
         switch (e.type) {
@@ -422,8 +422,13 @@ export class Control {
              * 点击聊天室列表右上角的按钮
              */
             case "add-room": {
-                const detail: undefined = e.detail[0];
-                void detail;
+                this._openRoomInfoDialog({
+                    roomId: `room-${id()}`,
+                    roomName: this.t("actions.menu.room.new"),
+                    avatar: `${this._plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
+                    users: [deepClone()(this._user)],
+                    index: 1,
+                });
                 break;
             }
             /**
@@ -1041,7 +1046,7 @@ export class Control {
             default:
                 break;
         }
-    }
+    };
 
     /**
      * 上传文件
@@ -1509,7 +1514,7 @@ export class Control {
      */
     protected async _broadcastUpdateMessage(data: Uint8Array): Promise<void> {
         await this._ready_ws;
-        this._ws_data.send(data);
+        this._ws_data.send(data as Uint8Array<ArrayBuffer>);
     }
 
     protected async _getOnlineClientNumber(name: string = Constants.ChannelName.data): Promise<number> {

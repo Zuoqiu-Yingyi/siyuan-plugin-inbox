@@ -21,6 +21,7 @@
             "clearMessages": "清空消息",
             "reloadMessages": "重载消息",
             "room": {
+                "new": "新群组",
                 "add": "创建群组",
                 "hide": "隐藏未加入的群组",
                 "show": "显示所有群组",
