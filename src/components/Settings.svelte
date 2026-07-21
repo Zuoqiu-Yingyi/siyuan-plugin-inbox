@@ -1,16 +1,16 @@
 <!--
  Copyright (C) 2023 Zuoqiu Yingyi
- 
+
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU Affero General Public License as
  published by the Free Software Foundation, either version 3 of the
  License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU Affero General Public License for more details.
- 
+
  You should have received a copy of the GNU Affero General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
@@ -18,28 +18,34 @@
 <!-- 设置面板 -->
 
 <script lang="ts">
-    import Panels from "@workspace/components/siyuan/setting/panel/Panels.svelte";
-    import Panel from "@workspace/components/siyuan/setting/panel/Panel.svelte";
-    import Tabs from "@workspace/components/siyuan/setting/tab/Tabs.svelte";
-    import Item from "@workspace/components/siyuan/setting/item/Item.svelte";
     import Input from "@workspace/components/siyuan/setting/item/Input.svelte";
-
     import { ItemType } from "@workspace/components/siyuan/setting/item/item";
-    import { type ITab } from "@workspace/components/siyuan/setting/tab";
+    import Item from "@workspace/components/siyuan/setting/item/Item.svelte";
+    import Panel from "@workspace/components/siyuan/setting/panel/Panel.svelte";
+    import Panels from "@workspace/components/siyuan/setting/panel/Panels.svelte";
 
-    import type Plugin from "@/index";
+    import type { ITab } from "@workspace/components/siyuan/setting/tab";
 
+    import type InboxPlugin from "@/index";
     import type { IConfig } from "@/types/config";
-    import type { I18N } from "@/utils/i18n";
 
-    export let config: IConfig; // 传入的配置项
-    export let plugin: InstanceType<typeof Plugin>; // 插件实例
+    interface IProps {
+        config: IConfig; // 传入的配置项
+        plugin: InstanceType<typeof InboxPlugin>; // 插件实例
+    }
 
-    const i18n = plugin.i18n as unknown as I18N;
+    const {
+        config,
+        plugin,
+    }: IProps = $props();
+
+    const i18n = plugin.i18n;
 
     async function updated() {
         await plugin.updateConfig(config);
     }
+
+    void updated;
 
     function resetOptions() {
         plugin.siyuan.confirm(
@@ -52,16 +58,11 @@
         );
     }
 
-    enum PanelKey {
-        general, // 常规设置
-    }
+    const PanelKey = {
+        general: "general", // 常规设置
+    } as const;
 
-    enum TabKey {
-        general, // 常规设置
-        service, // 服务设置
-    }
-
-    let panels_focus_key = PanelKey.general;
+    const panels_focus_key = PanelKey.general;
     const panels: ITab[] = [
         {
             key: PanelKey.general,
@@ -73,22 +74,22 @@
 </script>
 
 <Panels
-    {panels}
     focus={panels_focus_key}
+    {panels}
     let:focus={focusPanel}
 >
     <!-- 常规设置面板 -->
-    <Panel display={panels[0].key === focusPanel}>
+    <Panel display={panels[0]?.key === focusPanel}>
         <!-- 重置设置 -->
         <Item
-            title={i18n.settings.generalSettings.reset.title}
             text={i18n.settings.generalSettings.reset.description}
+            title={i18n.settings.generalSettings.reset.title}
         >
             <Input
                 slot="input"
-                type={ItemType.button}
                 settingKey="Reset"
                 settingValue={i18n.settings.generalSettings.reset.text}
+                type={ItemType.button}
                 on:clicked={resetOptions}
             />
         </Item>

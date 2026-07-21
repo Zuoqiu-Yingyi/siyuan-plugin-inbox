@@ -1,47 +1,47 @@
-/**
- * Copyright (C) 2023 Zuoqiu Yingyi
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- * 
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright (C) 2023 Zuoqiu Yingyi
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+// 
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import * as Y from "yjs";
-import { h } from "vue";
 import { Notification } from "@arco-design/web-vue";
-import { Client } from "@siyuan-community/siyuan-sdk";
-import * as Constants from "@/constant";
+import { h } from "vue";
+import * as Y from "yjs";
 
-import { id } from "@workspace/utils/siyuan/id";
 import { moment } from "@workspace/utils/date/moment";
-import { deshake } from "@workspace/utils/misc/deshake";
-import { isNone, isNumber, isString } from "@workspace/utils/misc/type";
-import { deepEqual } from "@workspace/utils/misc/equal";
+import { contentTypeParse } from "@workspace/utils/file/content-type";
 import { deepClone } from "@workspace/utils/misc/clone";
 import { copyText } from "@workspace/utils/misc/copy";
+import { deshake } from "@workspace/utils/misc/deshake";
+import { deepEqual } from "@workspace/utils/misc/equal";
+import { merge } from "@workspace/utils/misc/merge";
 import { trimPrefix } from "@workspace/utils/misc/string";
-import { merge, mergeIgnoreArray } from "@workspace/utils/misc/merge";
-import { contentTypeParse } from "@workspace/utils/file/content-type";
-
 import {
-    MessageType,
-    type IBaseMessage,
-    type IBaseBroadcastMessage,
-    type IBaseResponseMessage,
-    MenuAction,
-} from ".";
+    isNone,
+    isNumber,
+    isString,
+} from "@workspace/utils/misc/type";
+import { id } from "@workspace/utils/siyuan/id";
+
+import * as Constants from "@/constant";
 import { ConfirmModal } from "@/utils/modal";
 
-import type { Logger } from "@workspace/utils/logger";
+import {
+    MenuAction,
+    MessageType,
+
+} from ".";
+
+import type { Client } from "@siyuan-community/siyuan-sdk";
 import type { ShallowRef } from "vue";
 import type {
     CustomAction,
@@ -52,6 +52,10 @@ import type {
     RoomUser,
 } from "vue-advanced-chat";
 import type { VueI18nTranslation } from "vue-i18n";
+
+import type { Logger } from "@workspace/utils/logger";
+
+import type { IBaseBroadcastMessage, IBaseMessage, IBaseResponseMessage } from ".";
 
 export enum ControlChannel {
     load = "load", // 客户端加载
@@ -134,11 +138,11 @@ export class Control {
     protected readonly _ready_ws: Promise<void>;
     protected ready: boolean = false;
     protected ready_ws: boolean = false;
-    protected _resolve!: (value: void | PromiseLike<void>) => void;
-    protected _resolve_ws!: (value: void | PromiseLike<void>) => void;
+    protected _resolve!: (value: PromiseLike<void> | void) => void;
+    protected _resolve_ws!: (value: PromiseLike<void> | void) => void;
 
-    protected readonly _ws_control: WebSocket;
-    protected readonly _ws_data: WebSocket;
+    protected readonly _ws_control: WebSocket; // 控制信息广播通道
+    protected readonly _ws_data: WebSocket; // 数据信息广播通道 (Yjs CRDT)
 
     protected readonly _y_doc: Y.Doc;
     protected readonly _y_rooms: Y.Map<Room>; // 聊天室 ID -> 聊天室对象
@@ -150,13 +154,15 @@ export class Control {
         string,
         Pick<
             Room,
-            "index" | "unreadCount" | "lastMessage" | "typingUsers"
+            "index" | "lastMessage" | "typingUsers" | "unreadCount"
         >
     > = new Map(); // 聊天室 ID -> 聊天室状态信息
+
     protected readonly _channel_handlers_map: Map<
         string, // 消息通道名称
-        Set<IWsControlMessageHandler> // 监听器集合
+        Set<IWsControlMessageHandler>
     > = new Map(); // 消息通道名称 -> 监听器集合
+
     protected readonly _temp_messages: Message[] = []; // 临时消息列表
 
     protected _current_room_id: string; // 当前聊天室 ID
@@ -165,20 +171,23 @@ export class Control {
     protected _show_all_rooms: boolean = false; // 是否显示所有聊天室
 
     /**
-     * @param t 本地化函数
-     * @param _client SiYuan SDK 客户端
-     * @param _logger 日志记录器
-     * @param _user 当前用户
-     * @param _main 主聊天室
+     * @param t - 本地化函数
+     * @param _client - SiYuan SDK 客户端
+     * @param _logger - 日志记录器
+     * @param _user - 当前用户
+     * @param _main - 主聊天室
      * 
-     * @param _rooms 当前用户所在的聊天室列表
-     * @param _messages 当前聊天室的消息列表
-     * @param _room_id 当前聊天室 ID
-     * @param _room_current 当前聊天室对象
-     * @param _room_user_current 当前聊天室用户对象
-     * @param _room_info_dialog_visible 聊天室信息对话框是否可见
-     * @param _room_select_dialog_visible 聊天室选择对话框是否可见
-     * @param _room_user_info_dialog_visible 聊天室用户信息对话框是否可见
+     * @param _root_pathname - 思源内核服务根目录路径
+     * @param _plugin_root_pathname - 插件根目录路径
+     * 
+     * @param _rooms - 当前用户所在的聊天室列表
+     * @param _messages - 当前聊天室的消息列表
+     * @param _room_id - 当前聊天室 ID
+     * @param _room_current - 当前聊天室对象
+     * @param _room_user_current - 当前聊天室用户对象
+     * @param _room_info_dialog_visible - 聊天室信息对话框是否可见
+     * @param _room_select_dialog_visible - 聊天室选择对话框是否可见
+     * @param _room_user_info_dialog_visible - 聊天室用户信息对话框是否可见
      */
     constructor(
         protected readonly t: VueI18nTranslation,
@@ -187,9 +196,12 @@ export class Control {
         protected readonly _user: RoomUser,
         protected readonly _main: Room,
 
+        protected readonly _root_pathname: string,
+        protected readonly _plugin_root_pathname: string,
+
         protected readonly _rooms: ShallowRef<Room[]>,
         protected readonly _messages: ShallowRef<Message[]>,
-        protected readonly _room_id: ShallowRef<string | null>,
+        protected readonly _room_id: ShallowRef<null | string>,
         protected readonly _room_current: ShallowRef<Room | undefined>,
         protected readonly _room_user_current: ShallowRef<RoomUser | undefined>,
         protected readonly _room_info_dialog_visible: ShallowRef<boolean>,
@@ -225,7 +237,7 @@ export class Control {
         this._y_room_messages.observe(this.observeRoomMessages);
 
         /* 等待初始化完成 */
-        this._ready = new Promise<void>(resolve => {
+        this._ready = new Promise<void>((resolve) => {
             this._resolve = () => {
                 if (!this.ready) {
                     globalThis.addEventListener("beforeunload", this.onbeforeunload);
@@ -236,7 +248,7 @@ export class Control {
                 }
             };
         });
-        this._ready_ws = new Promise<void>(resolve => {
+        this._ready_ws = new Promise<void>((resolve) => {
             this._resolve_ws = () => {
                 if (!this.ready_ws) {
                     this.ready_ws = true;
@@ -286,7 +298,7 @@ export class Control {
                 const rooms = results[0].value as Record<string, Room>;
                 const main_room = rooms[Constants.MAIN_ROOM_ID];
                 if (main_room) {
-                    const current_user = main_room.users.find(user => user._id === this._user._id);
+                    const current_user = main_room.users.find((user) => user._id === this._user._id);
                     if (current_user) {
                         this.updateUser(current_user);
                     }
@@ -338,7 +350,7 @@ export class Control {
             this._client.putFile({ path: Constants.MESSAGES_DATA_FILE_PATH, file: JSON.stringify(this._y_messages.toJSON(), undefined, "\t") }),
             this._client.putFile({ path: Constants.ROOM_MESSAGES_MAP_FILE_PATH, file: JSON.stringify(this._y_room_messages.toJSON(), undefined, "\t") }),
         ]);
-    })
+    });
 
     /**
      * 释放资源
@@ -371,12 +383,12 @@ export class Control {
 
     /**
      * 打开指定聊天室
-     * @param roomId 聊天室 ID
+     * @param roomId - 聊天室 ID
      */
     public openRoom(roomId: string): void {
         const room = this._y_rooms.get(roomId);
         if (room) {
-            if (room.users.find(user => user._id === this._user._id)) {
+            if (room.users.some((user) => user._id === this._user._id)) {
                 this._room_id.value = roomId;
             }
         }
@@ -385,7 +397,7 @@ export class Control {
     /**
      * vue-advanced-chat 事件处理
      */
-    public async handler(e: CustomEvent) {
+    public readonly handler = async (e: CustomEvent) => {
         this._logger.debug(e);
         await this._ready;
 
@@ -410,7 +422,13 @@ export class Control {
              * 点击聊天室列表右上角的按钮
              */
             case "add-room": {
-                const detail: undefined = e.detail[0];
+                this._openRoomInfoDialog({
+                    roomId: `room-${id()}`,
+                    roomName: this.t("actions.menu.room.new"),
+                    avatar: `${this._plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
+                    users: [deepClone()(this._user)],
+                    index: 1,
+                });
                 break;
             }
             /**
@@ -422,6 +440,7 @@ export class Control {
                     roomId: string; // 当前聊天室 ID
                     value: string; // 搜索框中的文本内容
                 } = e.detail[0];
+                void detail;
                 break;
             }
             /**
@@ -455,7 +474,7 @@ export class Control {
                         else {
                             const room = this._y_rooms.get(detail.roomId);
                             if (room) {
-                                const user_index = room.users.findIndex(user => user._id === this._user._id);
+                                const user_index = room.users.findIndex((user) => user._id === this._user._id);
                                 if (user_index >= 0) {
                                     if (room.users.length === 1) { // 当前用户为该群组最后一个用户
                                         Notification.warning(
@@ -484,7 +503,7 @@ export class Control {
                                         });
 
                                         if (result) {
-                                            const user = room.users[user_index];
+                                            // const user = room.users[user_index];
                                             room.users.splice(user_index, 1);
                                             this._y_rooms.set(room.roomId, room);
 
@@ -618,6 +637,7 @@ export class Control {
                     }
                     this.updateRooms();
                 }
+                break;
             }
             /**
              * 消息输入框中内容更改
@@ -626,7 +646,7 @@ export class Control {
             case "typing-message": {
                 const detail: {
                     roomId: string; // 当前聊天室 ID
-                    message: string | null; // 消息输入框中的文本内容
+                    message: null | string; // 消息输入框中的文本内容
                 } = e.detail[0];
 
                 const typing = !!detail.message; // 用户是否正在编辑
@@ -639,7 +659,7 @@ export class Control {
                     this._typing_limitation = true;
                     setTimeout(() => (this._typing_limitation = false), Constants.USER_TYPING_STATUS_INTERVAL);
 
-                    const user = this._y_rooms.get(detail.roomId)?.users.find(user => user._id === this._user._id)
+                    const user = this._y_rooms.get(detail.roomId)?.users.find((user) => user._id === this._user._id)
                         ?? this._user;
 
                     /* 更新当前聊天室的用户编辑状态 */
@@ -673,7 +693,7 @@ export class Control {
 
                 /* 获取当前用户在该聊天室的用户信息 */
                 const room = this._y_rooms.get(detail.roomId);
-                const user = room?.users.find(u => u._id === this._user._id)
+                const user = room?.users.find((u) => u._id === this._user._id)
                     ?? this._user;
 
                 /* 添加到消息列表 */
@@ -741,14 +761,14 @@ export class Control {
                 this._pushNotificationMessage(
                     room?.roomName ?? this.t("inbox"),
                     {
-                        badge: Constants.ICON_FILE_PATH,
-                        icon: Constants.ICON_FILE_PATH,
-                        // @ts-ignore
-                        image: (message.files ?? []).find(file => file.type.startsWith("image/"))?.url,
-                        body: `${message.content}\n${(message.files ?? []).map(file => `[${file.name}.${file.extension}]`).join(" ")}`,
+                        badge: `${this._plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
+                        icon: `${this._plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
+                        // @ts-expect-error image 为非标准属性
+                        image: (message.files ?? []).find((file) => file.type.startsWith("image/"))?.url,
+                        body: `${message.content}\n${(message.files ?? []).map((file) => `[${file.name}.${file.extension}]`).join(" ")}`,
                         data: {
                             roomId: detail.roomId,
-                            message: message,
+                            message,
                         },
                     },
                 ); // 推送消息
@@ -791,8 +811,17 @@ export class Control {
                     message: Message; // 消息对象
                 } = e.detail[0];
 
-                detail.message.deleted = true;
-                this._y_messages.set(detail.message._id, detail.message);
+                /* 从聊天室消息列表中删除 */
+                const messages = this._y_room_messages.get(detail.roomId); // 消息 ID 列表
+                if (messages) {
+                    const message_index = messages.indexOf(detail.message._id);
+                    if (message_index >= 0) {
+                        this._y_room_messages.set(detail.roomId, messages.toSpliced(message_index, 1));
+                    }
+                }
+
+                /* 删除该消息内容 */
+                this._y_messages.delete(detail.message._id);
                 break;
             }
             /**
@@ -823,10 +852,11 @@ export class Control {
                 break;
             }
             /**
-             * 点击消息中的 @ 用户
+             * 点击消息中的 \@ 用户
              */
             case "open-user-tag": {
                 const detail: RoomUser = e.detail[0]; // (proxy)
+                void detail;
                 // TODO: 点击 @ 的用户
                 break;
             }
@@ -845,7 +875,7 @@ export class Control {
                     case "menu-user-settings": { // 用户信息
                         const room = this._y_rooms.get(detail.roomId);
                         if (room) {
-                            const user = room.users.find(user => user._id === this._user._id);
+                            const user = room.users.find((user) => user._id === this._user._id);
                             if (user) {
                                 this._openUserInfoDialog(room, user);
                             }
@@ -906,7 +936,6 @@ export class Control {
                                         },
                                     );
                                 }
-
                             }
                         }
                         break;
@@ -933,6 +962,11 @@ export class Control {
                     }
                     case "message-forward": { // 转发消息
                         await this.forwardMessages(detail.roomId, detail.message);
+                        break;
+                    }
+                    case "message-withdraw": { // 撤回消息
+                        detail.message.deleted = true;
+                        this._y_messages.set(detail.message._id, detail.message);
                         break;
                     }
                     default:
@@ -1005,18 +1039,19 @@ export class Control {
                     roomId: string; // 当前聊天室 ID
                     message: Message; // 文件所在的消息对象
                 } = e.detail[0];
+                void detail;
                 break;
             }
 
             default:
                 break;
         }
-    }
+    };
 
     /**
      * 上传文件
-     * @param messageFiles 文件列表
-     * @param assetsDirPath assets 目录路径
+     * @param messageFiles - 文件列表
+     * @param assetsDirPath - assets 目录路径
      * @returns 文件列表
      */
     public async uploadFiles(
@@ -1024,8 +1059,8 @@ export class Control {
         assetsDirPath: string = Constants.ASSETS_DIR_PATH,
     ): Promise<MessageFile[]> {
         const files: File[] = messageFiles
-            .filter(file => (file.blob instanceof Blob) && !file.url) // 仅上传存在文件内容 且 未上传的文件
-            .map(file => {
+            .filter((file) => (file.blob instanceof Blob) && !file.url) // 仅上传存在文件内容 且 未上传的文件
+            .map((file) => {
                 if (!(file.blob instanceof File)) {
                     file.blob = new File(
                         [file.blob!],
@@ -1044,17 +1079,17 @@ export class Control {
                 assetsDirPath,
                 files,
             });
-            messageFiles.forEach(file => {
+            messageFiles.forEach((file) => {
                 delete file.localUrl;
 
                 const asset_path = response.data.succMap[(file.blob as File)?.name];
                 file.url = asset_path
-                    ? `./../../../${asset_path}`
+                    ? `${this._root_pathname}${asset_path}`
                     : file.url;
             });
         }
         else {
-            messageFiles.forEach(file => {
+            messageFiles.forEach((file) => {
                 delete file.localUrl;
             });
         }
@@ -1063,7 +1098,7 @@ export class Control {
 
     /**
      * 更新当前用户
-     * @param user 当前用户
+     * @param user - 当前用户
      */
     public updateUser(user: RoomUser): void {
         merge(this._user, user);
@@ -1072,8 +1107,8 @@ export class Control {
 
     /**
      * 更新用户状态
-     * @param roomId 聊天室 ID
-     * @param date 时间日期
+     * @param roomId - 聊天室 ID
+     * @param date - 时间日期
      */
     public updateUserStatus(
         roomId: string,
@@ -1088,9 +1123,9 @@ export class Control {
 
     /**
      * 更新用户输入状态
-     * @param roomId 聊天室 ID
-     * @param userId 用户 ID
-     * @param typing 用户输入状态
+     * @param roomId - 聊天室 ID
+     * @param userId - 用户 ID
+     * @param typing - 用户输入状态
      */
     public updateUserTypingStatus(
         roomId: string,
@@ -1125,8 +1160,8 @@ export class Control {
 
     /**
      * 更新聊天室用户列表
-     * @param roomId 聊天室 ID
-     * @param user 用户
+     * @param roomId - 聊天室 ID
+     * @param user - 用户
      */
     public updateUsers(
         roomId: string = this._main.roomId,
@@ -1136,7 +1171,7 @@ export class Control {
         const room = this._y_rooms.get(roomId);
         if (room) {
             /* 更新用户状态 */
-            const user_ = room.users.find(u => u._id === user._id);
+            const user_ = room.users.find((u) => u._id === user._id);
             let update = false;
 
             if (user_) {
@@ -1167,28 +1202,28 @@ export class Control {
             }
 
             if (this._show_all_rooms // 显示所有聊天室
-                || !!room.users.find(user => user._id === this._user._id) // 当前用户已加入的聊天室
+                || room.users.some((user) => user._id === this._user._id) // 当前用户已加入的聊天室
             ) {
                 rooms.push(merge<Room>({}, room, this._room_status_map.get(room.roomId) ?? {}));
             }
         }
         this.sortRooms(rooms);
         this._rooms.value = deepClone()(rooms);
-    })
+    });
 
     /**
      * 更新消息列表
-     * @param roomId 聊天室 ID
+     * @param roomId - 聊天室 ID
      */
     public readonly updateMessages = deshake((
         roomId: string = this._current_room_id,
     ) => {
         const messages_list = this._y_room_messages.get(roomId) || [];
         const messages = messages_list
-            .map(message_id => this._y_messages.get(message_id)!)
-            .filter(message => !!message);
+            .map((message_id) => this._y_messages.get(message_id)!)
+            .filter((message) => !!message);
         this._messages.value = deepClone()(messages);
-    })
+    });
 
     /**
      * 排序聊天室列表
@@ -1214,7 +1249,7 @@ export class Control {
 
     /**
      * 排序用户列表
-     * @param users: 用户列表
+     * @param users -: 用户列表
      */
     public sortUsers(users: RoomUser[] = this._main.users): void {
         users.sort((u1, u2) => {
@@ -1231,23 +1266,23 @@ export class Control {
 
     /**
      * 消息列表转换为 Markdown
-     * @param messages 消息列表
+     * @param messages - 消息列表
      * @returns 消息 Markdown 文本
      */
     public messages2markdown(messages: Message[]): string {
         const blocks: string[] = [];
 
-        messages.forEach(message => {
+        messages.forEach((message) => {
             const lines: string[] = [];
             if (message.replyMessage) { // 存在引用的消息
                 const block = this.messages2markdown([message.replyMessage]);
-                lines.push(...block.split("\n").map(line => `> ${line}`));
+                lines.push(...block.split("\n").map((line) => `> ${line}`));
                 lines.push(""); // 硬换行, 打破引述块
             }
             if (Array.isArray(message.files)) { // 存在附件
-                message.files.forEach(file => {
-                    const anchor_text = file.name.replaceAll(/(?<!\\)([\[\]])/g, "\\$1"); // 超链接锚文本
-                    const asset_path = trimPrefix(file.url, "./../../../"); // 资源引用路径
+                message.files.forEach((file) => {
+                    const anchor_text = file.name.replaceAll(/(?<!\\)([[\]])/g, "\\$1"); // 超链接锚文本
+                    const asset_path = trimPrefix(file.url, this._root_pathname); // 资源引用路径
                     const content_type = contentTypeParse(file.type); // 文件类型
                     if (content_type) {
                         switch (content_type.maintype) {
@@ -1297,7 +1332,7 @@ export class Control {
 
     /**
      * 复制消息
-     * @param messages 消息列表
+     * @param messages - 消息列表
      * @returns 消息 Markdown 文本
      */
     public async copyMessages(
@@ -1310,8 +1345,8 @@ export class Control {
 
     /**
      * 转发消息
-     * @param roomId 消息所在聊天室 ID
-     * @param messages 消息列表
+     * @param roomId - 消息所在聊天室 ID
+     * @param messages - 消息列表
      */
     public forwardMessages(
         roomId: string,
@@ -1328,10 +1363,10 @@ export class Control {
 
     /**
      * 构造消息
-     * @param type 消息类型
-     * @param channel 消息通道
-     * @param receiver 消息接收者
-     * @param data 消息数据
+     * @param type - 消息类型
+     * @param channel - 消息通道
+     * @param receiver - 消息接收者
+     * @param data - 消息数据
      */
     protected _construct<
         M extends IBaseMessage,
@@ -1357,7 +1392,7 @@ export class Control {
 
     /**
      * 发送当前用户状态
-     * @param receiver 消息接收者的用户 ID
+     * @param receiver - 消息接收者的用户 ID
      */
     protected async _sendCurrentUserState(
         receiver?: string | string[],
@@ -1392,9 +1427,9 @@ export class Control {
 
     /**
      * 广播聊天室用户输入状态
-     * @param roomId 聊天室 ID
-     * @param typing 用户是否正在输入
-     * @param user 用户
+     * @param roomId - 聊天室 ID
+     * @param typing - 用户是否正在输入
+     * @param user - 用户
      */
     protected async _broadcastTypingStatus(
         roomId: string,
@@ -1419,8 +1454,8 @@ export class Control {
 
     /**
      * 广播聊天室最新消息
-     * @param roomId 聊天室 ID
-     * @param lastMessage 聊天室最新消息
+     * @param roomId - 聊天室 ID
+     * @param lastMessage - 聊天室最新消息
      */
     protected async _broadcastLastMessage(
         roomId: string,
@@ -1440,9 +1475,9 @@ export class Control {
 
     /**
      * 推送通知消息
-     * @param title 通知标题
-     * @param options 通知选项
-     * @param receiver 消息接收者的用户 ID
+     * @param title - 通知标题
+     * @param options - 通知选项
+     * @param receiver - 消息接收者的用户 ID
      */
     protected async _pushNotificationMessage(
         title: string,
@@ -1465,7 +1500,7 @@ export class Control {
 
     /**
      * 广播控制消息
-     * @param data 控制消息数据
+     * @param data - 控制消息数据
      */
     protected async _broadcastControlMessage(
         data: any,
@@ -1476,27 +1511,29 @@ export class Control {
 
     /**
      * 广播更新消息
-    */
+     */
     protected async _broadcastUpdateMessage(data: Uint8Array): Promise<void> {
         await this._ready_ws;
-        this._ws_data.send(data);
+        this._ws_data.send(data as Uint8Array<ArrayBuffer>);
     }
 
     protected async _getOnlineClientNumber(name: string = Constants.ChannelName.data): Promise<number> {
         try {
             const response = await this._client.getChannelInfo({ name });
-            return response.data.channel.count
-        } catch (error) {
+            return response.data.channel.count;
+        }
+        catch (error) {
+            void error;
             return 0;
         }
     }
 
     /**
      * 设置用户输入状态
-     * @param roomId 聊天室 ID
-     * @param userId 用户 ID
-     * @param typing 用户输入状态
-     * @param timeout 编辑状态超时时间
+     * @param roomId - 聊天室 ID
+     * @param userId - 用户 ID
+     * @param typing - 用户输入状态
+     * @param timeout - 编辑状态超时时间
      */
     protected _setUserTypingStatus(
         roomId: string,
@@ -1543,8 +1580,8 @@ export class Control {
 
     /**
      * 打开用户信息对话框
-     * @param room 当前聊天室
-     * @param user 当前聊天室的本用户
+     * @param room - 当前聊天室
+     * @param user - 当前聊天室的本用户
      */
     protected _openUserInfoDialog(
         room: Room,
@@ -1560,10 +1597,11 @@ export class Control {
      */
     protected async _handleLoadMessage(message: ILoadBroadcastMessage): Promise<void> {
         switch (message.type) {
-            case "broadcast":
+            case "broadcast": {
                 const state = Y.encodeStateAsUpdateV2(this._y_doc);
                 await this._broadcastUpdateMessage(state);
                 break;
+            }
             default:
                 break;
         }
@@ -1586,7 +1624,7 @@ export class Control {
             default:
                 break;
         }
-        const user = this._main.users.find(user => user._id === message.data.user._id);
+        const user = this._main.users.find((user) => user._id === message.data.user._id);
         if (user) {
             merge(user, message.data.user);
         }
@@ -1628,7 +1666,7 @@ export class Control {
             this._room_status_map.set(message.data.roomId, {
                 index: lastMessage.timestamp,
                 unreadCount: 1,
-                lastMessage: lastMessage,
+                lastMessage,
             });
         }
         this.updateRooms();
@@ -1641,27 +1679,28 @@ export class Control {
         /* 创建消息通知 */
         if (globalThis.Notification?.permission === "granted") {
             const notification = new globalThis.Notification(message.data.title, message.data.options);
-            notification.addEventListener("show", e => {
+            notification.addEventListener("show", (_e) => {
                 // this._logger.debug(e);
             });
-            notification.addEventListener("click", e => {
+            notification.addEventListener("click", (e) => {
                 // this._logger.debug(e);
                 this.openRoom((e.target as Notification).data?.roomId);
             });
-            notification.addEventListener("close", e => {
+            notification.addEventListener("close", (_e) => {
                 // this._logger.debug(e);
             });
-            notification.addEventListener("error", e => {
+            notification.addEventListener("error", (e) => {
                 this._logger.error(e);
             });
         }
     }
 
+    /* eslint-disable jsdoc/check-param-names */
     /**
      * 注册控制消息处理器
-     * @param channel 消息通道名称
-     * @param handler 消息处理器
-     * @param options 消息处理器选项
+     * @param channel - 消息通道名称
+     * @param handler - 消息处理器
+     * @param options - 消息处理器选项
      */
     public addWsControlMessageHandler(
         channel: string,
@@ -1685,14 +1724,15 @@ export class Control {
         });
         this._channel_handlers_map.set(channel, handlers);
     }
+    /* eslint-enable jsdoc/check-param-names */
 
-    protected readonly onWsOpen = (e: Event) => {
+    protected readonly onWsOpen = (_e: Event) => {
         // this._logger.info(e);
 
         if (this._ws_control.readyState === WebSocket.OPEN && this._ws_data.readyState === WebSocket.OPEN) {
             this._resolve_ws();
         }
-    }
+    };
 
     protected readonly onWsControlMessage = async (e: MessageEvent<string>) => {
         const message: IBaseMessage = globalThis.JSON.parse(e.data);
@@ -1721,34 +1761,34 @@ export class Control {
                 }
             });
         }
-    }
+    };
 
     protected readonly onWsDataMessage = async (e: MessageEvent<Blob>) => {
         // this._logger.info(e);
 
         Y.applyUpdateV2(this._y_doc, new Uint8Array(await e.data.arrayBuffer()));
-    }
+    };
 
     protected readonly onWsError = (e: Event) => {
         this._logger.error(e);
-    }
+    };
 
-    protected readonly onWsClose = (e: CloseEvent) => {
+    protected readonly onWsClose = (_e: CloseEvent) => {
         // this._logger.info(e);
-    }
+    };
 
     /**
      * 页面关闭前
      */
-    protected readonly onbeforeunload = (e: BeforeUnloadEvent) => {
+    protected readonly onbeforeunload = (_e: BeforeUnloadEvent) => {
         this.offline();
         this.destroy();
-    }
+    };
 
     /**
      * 页面可视状态变更
      */
-    protected readonly onvisibilitychange = (e: Event) => {
+    protected readonly onvisibilitychange = (_e: Event) => {
         // this._logger.debug("onvisibilitychange");
 
         // REF: https://developer.mozilla.org/zh-CN/docs/Web/API/Navigator/sendBeacon
@@ -1763,39 +1803,39 @@ export class Control {
             default:
                 break;
         }
-    }
+    };
 
     /**
      * 当前客户端数据发生变更
      */
     protected readonly onYjsUpdate = async (
         update: Uint8Array,
-        origin: any,
-        doc: Y.Doc,
+        _origin: any,
+        _doc: Y.Doc,
     ) => {
         // this._logger.infos("onYjsUpdate", update, origin);
 
         this._broadcastUpdateMessage(update);
         await this.save();
-    }
+    };
 
     /**
      * 其他客户端数据发生变更
      */
     protected readonly onYjsAfterAllTransactions = async (
-        doc: Y.Doc,
-        transactions: Array<Y.Transaction>,
+        _doc: Y.Doc,
+        _transactions: Array<Y.Transaction>,
     ) => {
         // this._logger.infos("onYjsAfterAllTransactions", doc, transactions);
 
         this.updateUsers();
         this.updateRooms();
         this.updateMessages();
-    }
+    };
 
     /**
      * 处理菜单项点击事件
-     * @param action 菜单项
+     * @param action - 菜单项
      */
     public readonly onClickMenuItem = async (
         action: MenuAction,
@@ -1808,7 +1848,7 @@ export class Control {
                 this._openRoomInfoDialog({
                     roomId: id(),
                     roomName: `${this.t("inbox")} ${this._y_rooms.size + 1}`,
-                    avatar: Constants.ICON_FILE_PATH,
+                    avatar: `${this._plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
                     users: [deepClone()(this._user)],
                 });
                 break;
@@ -1850,13 +1890,10 @@ export class Control {
 
             case MenuAction.LOGOUT: { // 注销登录状态
                 try {
-                    // TODO: 使用 logoutAuth() 替代
-                    // await this._client.logoutAuth();
-                    await this._client._request(
-                        "/api/system/logoutAuth",
-                        "POST",
-                    );
-                } catch (error) {
+                    await this._client.logoutAuth();
+                }
+                catch (error) {
+                    void error;
                 }
                 this.offline();
                 this.destroy();
@@ -1886,11 +1923,11 @@ export class Control {
             default:
                 break;
         }
-    }
+    };
 
     /**
      * 处理聊天室信息对话框确认事件
-     * @param room 聊天室信息
+     * @param room - 聊天室信息
      */
     public readonly onRoomInfoConfirm = async (
         room: Room,
@@ -1903,12 +1940,12 @@ export class Control {
         if (!this._y_room_messages.has(room.roomId)) {
             this._y_room_messages.set(room.roomId, []);
         }
-    }
+    };
 
     /**
      * 处理用户信息对话框确认事件
-     * @param room 聊天室信息
-     * @param user 用户信息
+     * @param room - 聊天室信息
+     * @param user - 用户信息
      */
     public readonly onUserInfoConfirm = async (
         room: Room,
@@ -1920,7 +1957,7 @@ export class Control {
         const room_ = this._y_rooms.get(room.roomId);
         if (room_) {
             /* 更新对应聊天室的用户 */
-            const user_ = room_.users.find(u => u._id === user._id);
+            const user_ = room_.users.find((u) => u._id === user._id);
             if (user_) {
                 merge(user_, user);
             }
@@ -1935,25 +1972,25 @@ export class Control {
             }
             this._y_rooms.set(room_.roomId, room_);
         }
-    }
+    };
 
     /**
      * 处理群组选择对话框确认事件
-     * @param roomIds 群组 ID 列表
+     * @param roomIds - 群组 ID 列表
      */
     public readonly onRoomSelectConfirm = async (
         roomIds: string[],
     ) => {
         const rooms = roomIds
-            .map(roomId => this._y_rooms.get(roomId)!)
-            .filter(room => !!room);
+            .map((roomId) => this._y_rooms.get(roomId)!)
+            .filter((room) => !!room);
 
         // 转发消息
         const date = new Date();
         const datetime = moment(date);
         let indexId = datetime.valueOf();
 
-        const messages_: Message[] = this._temp_messages.map(message => ({
+        const messages_: Message[] = this._temp_messages.map((message) => ({
             ...message,
             date: datetime.format("YYYY-MM-DD"), // 日期
             timestamp: datetime.format("YYYY-MM-DD HH:mm:ss"), // 时间戳
@@ -1961,14 +1998,14 @@ export class Control {
         }));
         this._temp_messages.length = 0;
 
-        rooms.forEach(room => {
+        rooms.forEach((room) => {
             const messages_list = this._y_room_messages.get(room.roomId);
             if (messages_list) {
-                const user = room.users.find(user => user._id === this._user._id)
+                const user = room.users.find((user) => user._id === this._user._id)
                     ?? this._user;
 
                 /* 为消息设置新的 ID 与发送者 */
-                const messages__: Message[] = messages_.map(message => ({
+                const messages__: Message[] = messages_.map((message) => ({
                     ...message,
                     _id: id(),
                     indexId: indexId++,
@@ -1978,50 +2015,50 @@ export class Control {
                 }));
 
                 /* 转发后的消息 */
-                messages__.forEach(message => {
+                messages__.forEach((message) => {
                     this._y_messages.set(message._id, message);
                 });
 
                 /* 转发后的消息关联到对应的聊天室 */
-                messages_list.push(...messages__.map(message => message._id));
+                messages_list.push(...messages__.map((message) => message._id));
                 this._y_room_messages.set(room.roomId, messages_list);
             }
         });
-    }
+    };
 
     /**
      * 观察聊天室信息变更
      */
     protected readonly observeRooms = async (
-        e: Y.YMapEvent<Room>,
-        t: Y.Transaction,
+        _e: Y.YMapEvent<Room>,
+        _t: Y.Transaction,
     ) => {
         // this._logger.debugs("observeRooms", e, t);
 
         this.updateRooms();
-    }
+    };
 
     /**
      * 观察消息列表内容变更
      */
     protected readonly observeMessages = async (
-        e: Y.YMapEvent<Message>,
-        t: Y.Transaction,
+        _e: Y.YMapEvent<Message>,
+        _t: Y.Transaction,
     ) => {
         // this._logger.debugs("observeMessages", e, t);
 
         this.updateMessages();
-    }
+    };
 
     /**
      * 观察聊天室对应的消息列表变更
      */
     protected readonly observeRoomMessages = async (
-        e: Y.YMapEvent<string[]>,
-        t: Y.Transaction,
+        _e: Y.YMapEvent<string[]>,
+        _t: Y.Transaction,
     ) => {
         // this._logger.debugs("observeMessages", e, t);
 
         this.updateMessages();
-    }
+    };
 }
