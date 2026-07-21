@@ -1,0 +1,19 @@
+src/messages/control.ts
+  s_d0dc710a2bd354::t_7919b419637623 400-401,425-431,1049,1517
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.35-trip",
+  "base_commit_sha": "46835211458ed6d65f79c3e80e1404212b674936",
+  "prompts": {},
+  "sessions": {
+    "s_d0dc710a2bd354": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f84e8-f887-74e1-bfc9-20b304d430cc",
+        "model": "gpt-5.5-2026-04-24"
+      },
+      "human_author": "Yingyi / 颖逸 <49649786+Zuoqiu-Yingyi@users.noreply.github.com>"
+    }
+  }
+}
