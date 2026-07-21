@@ -74,7 +74,7 @@ function onclick(_e: MouseEvent, optionType: TextareaOptionType): void {
 <template>
     <!-- REF: https://arco.design/vue/component/dropdown -->
     <Dropdown trigger="hover">
-        <IconPlusCircle />
+        <IconMoreVertical />
         <template #content>
             <Dgroup>
                 <template #title>

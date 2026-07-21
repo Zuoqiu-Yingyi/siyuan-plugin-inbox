@@ -387,22 +387,24 @@ function onSelectFiles(files: FileList | null): void {
         @textarea-action-handler="control.handler"
         @typing-message="control.handler"
     >
+        <!-- eslint-disable vue/no-deprecated-slot-attribute -->
+        <!-- 该组件不支持 <template #slot-name> 的格式 -->
         <!-- 自定义添加按钮 -->
-        <template #add-icon>
-            <span
-                class="icon"
-            >
-                <InboxMenu @click="control.onClickMenuItem" />
-            </span>
-        </template>
+        <span
+            slot="add-icon"
+            class="icon"
+        >
+            <InboxMenu @click="control.onClickMenuItem" />
+        </span>
+
         <!-- 消息输入框的自定义按钮, 点击时触发 textarea-action-handler 事件 -->
-        <template #custom-action-icon>
-            <span
-                class="icon"
-            >
-                <InboxTextareaMenu @files="onSelectFiles" />
-            </span>
-        </template>
+        <span
+            slot="custom-action-icon"
+            class="icon"
+        >
+            <InboxTextareaMenu @files="onSelectFiles" />
+        </span>
+        <!-- eslint-enable vue/no-deprecated-slot-attribute -->
     </vue-advanced-chat>
 </template>
 
