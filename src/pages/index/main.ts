@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import "./main.less";
-
 import { Modal, Notification } from "@arco-design/web-vue";
 import { Client } from "@siyuan-community/siyuan-sdk";
 import { createApp } from "vue";
@@ -31,14 +29,16 @@ import { auth } from "@workspace/utils/siyuan/url";
 import manifest from "~/public/plugin.json";
 import * as Constants from "~/src/constant";
 
+import App from "./App.vue";
+
 /* 语言包 */
 import en from "@/locales/en.json";
 import zh_Hans from "@/locales/zh-Hans.json";
 import zh_Hant from "@/locales/zh-Hant.json";
 
-import App from "./App.vue";
-
 import type { RoomUser } from "vue-advanced-chat";
+
+import "./main.less";
 
 (async () => {
     /* 日志记录器 */

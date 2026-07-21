@@ -19,7 +19,7 @@ import { vitePluginForArco } from "@arco-plugins/vite-vue";
 import vue from "@vitejs/plugin-vue";
 import {
     VitePWA,
-    type ManifestOptions,
+
 } from "vite-plugin-pwa";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
@@ -29,6 +29,7 @@ import type {
     UserConfig,
     UserConfigFnObject,
 } from "vite";
+import type { ManifestOptions } from "vite-plugin-pwa";
 
 const plugin_root_pathname = `/plugins/${plugin.name}/`;
 export const manifest = {

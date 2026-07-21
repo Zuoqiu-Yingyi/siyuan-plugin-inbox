@@ -25,11 +25,11 @@ import {
 import { Logger } from "@workspace/utils/logger";
 import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
 
-import InboxDock from "./components/InboxDock.svelte";
-import Settings from "./components/Settings.svelte";
-
 import icon_inbox from "./assets/symbols/icon-inbox.symbol?raw";
 import { DEFAULT_CONFIG } from "./configs/default";
+
+import InboxDock from "./components/InboxDock.svelte";
+import Settings from "./components/Settings.svelte";
 
 import type { IConfig } from "./types/config";
 import type { I18N } from "./utils/i18n";

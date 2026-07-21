@@ -23,7 +23,8 @@
     import Item from "@workspace/components/siyuan/setting/item/Item.svelte";
     import Panel from "@workspace/components/siyuan/setting/panel/Panel.svelte";
     import Panels from "@workspace/components/siyuan/setting/panel/Panels.svelte";
-    import { type ITab } from "@workspace/components/siyuan/setting/tab";
+
+    import type { ITab } from "@workspace/components/siyuan/setting/tab";
 
     import type InboxPlugin from "@/index";
     import type { IConfig } from "@/types/config";
@@ -57,11 +58,9 @@
         );
     }
 
-    /* eslint-disable no-unused-vars */
-    enum PanelKey {
-        general, // 常规设置
-    }
-    /* eslint-enable no-unused-vars */
+    const PanelKey = {
+        general: "general", // 常规设置
+    } as const;
 
     const panels_focus_key = PanelKey.general;
     const panels: ITab[] = [

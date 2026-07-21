@@ -38,9 +38,7 @@ import { ConfirmModal } from "@/utils/modal";
 import {
     MenuAction,
     MessageType,
-    type IBaseBroadcastMessage,
-    type IBaseMessage,
-    type IBaseResponseMessage,
+
 } from ".";
 
 import type { Client } from "@siyuan-community/siyuan-sdk";
@@ -56,6 +54,8 @@ import type {
 import type { VueI18nTranslation } from "vue-i18n";
 
 import type { Logger } from "@workspace/utils/logger";
+
+import type { IBaseBroadcastMessage, IBaseMessage, IBaseResponseMessage } from ".";
 
 export enum ControlChannel {
     load = "load", // 客户端加载
@@ -160,7 +160,7 @@ export class Control {
 
     protected readonly _channel_handlers_map: Map<
         string, // 消息通道名称
-        Set<IWsControlMessageHandler> // 监听器集合
+        Set<IWsControlMessageHandler>
     > = new Map(); // 消息通道名称 -> 监听器集合
 
     protected readonly _temp_messages: Message[] = []; // 临时消息列表
@@ -388,7 +388,7 @@ export class Control {
     public openRoom(roomId: string): void {
         const room = this._y_rooms.get(roomId);
         if (room) {
-            if (room.users.find((user) => user._id === this._user._id)) {
+            if (room.users.some((user) => user._id === this._user._id)) {
                 this._room_id.value = roomId;
             }
         }
@@ -1197,7 +1197,7 @@ export class Control {
             }
 
             if (this._show_all_rooms // 显示所有聊天室
-                || !!room.users.find((user) => user._id === this._user._id) // 当前用户已加入的聊天室
+                || room.users.some((user) => user._id === this._user._id) // 当前用户已加入的聊天室
             ) {
                 rooms.push(merge<Room>({}, room, this._room_status_map.get(room.roomId) ?? {}));
             }

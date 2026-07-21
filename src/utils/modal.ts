@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Modal, type ModalConfig } from "@arco-design/web-vue";
+import { Modal } from "@arco-design/web-vue";
+
+import type { ModalConfig } from "@arco-design/web-vue";
 
 export async function ConfirmModal(config: ModalConfig): Promise<boolean> {
     return new Promise<boolean>((resolve) => {

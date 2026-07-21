@@ -23,7 +23,7 @@ import {
     Input,
     Modal,
     Select,
-    type SelectOptionData,
+
 } from "@arco-design/web-vue";
 import {
     computed,
@@ -34,6 +34,7 @@ import {
 import InboxAvatarGroup from "./InboxAvatarGroup.vue";
 import InboxAvatarInput from "./InboxAvatarInput.vue";
 
+import type { SelectOptionData } from "@arco-design/web-vue";
 import type { Room, RoomUser } from "vue-advanced-chat";
 
 interface IProps {
@@ -59,11 +60,11 @@ const avatars = computed(() => userIds.value.map((id) => props.users.find((user)
 const usersOptions = computed<SelectOptionData[]>(() => {
     // eslint-disable-next-line ts/no-use-before-define
     const users = props.users.toSorted(userCompareFn);
-    const options = props.room.users.find((user) => user._id === props.user._id) // 当前用户所在的聊天室
+    const options = props.room.users.some((user) => user._id === props.user._id) // 当前用户所在的聊天室
         ? users.map((user) => ({
-            ...user,
-            disabled: user._id === props.user._id,
-        })) // 不能修改当前用户
+                ...user,
+                disabled: user._id === props.user._id,
+            })) // 不能修改当前用户
         : users; // 可以修改所有用户
     // console.debug(options);
     return options;

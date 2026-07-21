@@ -25,10 +25,7 @@ import {
 } from "vue";
 import {
     register,
-    type Message,
-    type Props,
-    type Room,
-    type RoomUser,
+
 } from "vue-advanced-chat";
 
 import ArcoConfigProvider from "@workspace/components/arco/ArcoConfigProvider.vue";
@@ -48,6 +45,7 @@ import InboxTextareaMenu from "@/components/InboxTextareaMenu.vue";
 import InboxUserInfoDialog from "@/components/InboxUserInfoDialog.vue";
 
 import type { Client } from "@siyuan-community/siyuan-sdk";
+import type { Message, Props, Room, RoomUser } from "vue-advanced-chat";
 import type {
     I18n,
     VueI18nTranslation,
