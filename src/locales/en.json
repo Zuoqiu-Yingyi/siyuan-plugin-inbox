@@ -21,7 +21,6 @@
             "clearMessages": "Clear messages",
             "reloadMessages": "Reload message",
             "room": {
-                "new": "New group",
                 "add": "Create group",
                 "hide": "Hide unjoined groups",
                 "show": "Show all groups",

@@ -398,7 +398,7 @@ export class Control {
      * vue-advanced-chat 事件处理
      */
     public readonly handler = async (e: CustomEvent) => {
-        this._logger.debug(e);
+        // this._logger.debug(e);
         await this._ready;
 
         switch (e.type) {
@@ -422,13 +422,9 @@ export class Control {
              * 点击聊天室列表右上角的按钮
              */
             case "add-room": {
-                this._openRoomInfoDialog({
-                    roomId: `room-${id()}`,
-                    roomName: this.t("actions.menu.room.new"),
-                    avatar: `${this._plugin_root_pathname}${Constants.ICON_FILE_PATH}`,
-                    users: [deepClone()(this._user)],
-                    index: 1,
-                });
+                // 已经使用自定义的菜单覆盖
+                const detail: undefined = e.detail[0];
+                void detail;
                 break;
             }
             /**
