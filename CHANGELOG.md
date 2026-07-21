@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.0...v0.2.1) (2026-07-21)
+
+
+### Miscellaneous
+
+* release v0.2.1 ([636863e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/636863e9460a7cd2a4e3e9a25b71837e3c581f97))
+* **release:** bump version to 0.2.1 in package.json and plugin.json ([c8417da](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/c8417daa7c6047505574bc7fe46c1f09d0863983))
+
+
+### Bug Fixes
+
+* **menu:** update slot syntax in App.vue and change icon in InboxTextareaMenu.vue ([75c55ab](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/75c55ab1591c68678f59a68f773c4703e3e27622))
+
+
+### Code Refactoring
+
+* **locales:** remove "new" group label from English, Simplified Chinese, and Traditional Chinese locale files ([a803182](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/a80318219b8a86cc604d82dfb4d6f7143d2bee3f))
+
 ## [0.2.0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.1.1...v0.2.0) (2026-07-21)
 
 
