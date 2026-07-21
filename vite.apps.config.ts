@@ -178,16 +178,19 @@ export const userConfigFn: UserConfigFnObject = function (env) {
                     {
                         src: "./node_modules/emoji-picker-element-data/zh/cldr/data.json",
                         dest: "./libs/emoji-picker-element-data/zh-Hans/cldr/",
+                        rename: { stripBase: true },
                         // rename: "data.json",
                     },
                     {
                         src: "./node_modules/emoji-picker-element-data/zh-hant/cldr/data.json",
                         dest: "./libs/emoji-picker-element-data/zh-Hant/cldr/",
+                        rename: { stripBase: true },
                         // rename: "data.json",
                     },
                     {
                         src: "./node_modules/emoji-picker-element-data/en/cldr/data.json",
                         dest: "./libs/emoji-picker-element-data/en/cldr/",
+                        rename: { stripBase: true },
                         // rename: "data.json",
                     },
                 ],
