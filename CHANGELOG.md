@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.1...v0.2.2) (2026-07-24)
+
+
+### Miscellaneous
+
+* **main:** release 0.2.1 ([05d5a07](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/05d5a07855aa7670efcbbfd69d53e04d4bef1669))
+* **main:** release 0.2.1 ([741656f](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/741656f84eb205e5d2a64f28b15e4b6e9d410a34))
+* release v0.2.2 ([a897579](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/a89757905b84241283e46ba8176c9cdc2541e28c))
+* release v0.2.2 ([dcb8a9e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/dcb8a9ec3375b321626b74c8ac30380522858392))
+* **release:** remove specific release version from configuration ([2578431](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/2578431fa85878ca0a9282625be400033b1a3bb0))
+* **release:** update release version to 0.2.2 in release-please-config.json ([eab86c0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/eab86c0b111335408820f626d1fa1256b27a8344))
+* **version:** bump version to 0.2.2 in package.json and plugin.json ([6ffd61c](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/6ffd61c1a37a7e37c69dea2f274a4073a19704cb))
+
+
+### Code Refactoring
+
+* **Control:** enhance WebSocket management and reconnection logic ([13d34cd](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/13d34cdd21ef0f12b637898a2f11fef284deb326))
+
 ## [0.2.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.1...v0.2.1) (2026-07-24)
 
 
