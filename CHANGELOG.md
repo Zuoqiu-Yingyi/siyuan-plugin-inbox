@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.1...v0.2.1) (2026-07-24)
+
+
+### Miscellaneous
+
+* release v0.2.2 ([dcb8a9e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/dcb8a9ec3375b321626b74c8ac30380522858392))
+* **version:** bump version to 0.2.2 in package.json and plugin.json ([6ffd61c](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/6ffd61c1a37a7e37c69dea2f274a4073a19704cb))
+
+
+### Code Refactoring
+
+* **Control:** enhance WebSocket management and reconnection logic ([13d34cd](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/13d34cdd21ef0f12b637898a2f11fef284deb326))
+
 ## [0.2.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.0...v0.2.1) (2026-07-21)
 
 
