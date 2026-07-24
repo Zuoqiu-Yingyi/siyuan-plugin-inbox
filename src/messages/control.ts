@@ -135,14 +135,18 @@ export interface IUserStatus {
 
 export class Control {
     protected readonly _ready: Promise<void>;
-    protected readonly _ready_ws: Promise<void>;
+    protected _ready_ws!: Promise<void>;
     protected ready: boolean = false;
     protected ready_ws: boolean = false;
     protected _resolve!: (value: PromiseLike<void> | void) => void;
     protected _resolve_ws!: (value: PromiseLike<void> | void) => void;
 
-    protected readonly _ws_control: WebSocket; // 控制信息广播通道
-    protected readonly _ws_data: WebSocket; // 数据信息广播通道 (Yjs CRDT)
+    protected _ws_control!: WebSocket; // 控制信息广播通道
+    protected _ws_data!: WebSocket; // 数据信息广播通道 (Yjs CRDT)
+    protected _ws_reconnect_timer: null | ReturnType<typeof setTimeout> = null; // WebSocket 重连定时器
+    protected _ws_reconnect_attempt: number = 0; // WebSocket 重连次数
+    protected _ws_ready_count: number = 0; // WebSocket 完成连接次数
+    protected _destroyed: boolean = false; // 是否已释放资源
 
     protected readonly _y_doc: Y.Doc;
     protected readonly _y_rooms: Y.Map<Room>; // 聊天室 ID -> 聊天室对象
@@ -169,6 +173,9 @@ export class Control {
     protected _rooms_list_opened: boolean = true; // 当前聊天列表是否展开
     protected _typing_limitation: boolean = false; // 是否限制用户输入状态广播
     protected _show_all_rooms: boolean = false; // 是否显示所有聊天室
+
+    protected static readonly WS_RECONNECT_DELAY_MIN = 1_000; // WebSocket 重连初始等待时间 (ms)
+    protected static readonly WS_RECONNECT_DELAY_MAX = 30_000; // WebSocket 重连最大等待时间 (ms)
 
     /**
      * @param t - 本地化函数
@@ -211,18 +218,9 @@ export class Control {
         /* 主聊天室 */
         this._current_room_id = Constants.MAIN_ROOM_ID;
 
-        /* 控制信道 */
-        this._ws_control = this._client.broadcast({ channel: Constants.ChannelName.control });
-        this._ws_control.addEventListener("open", this.onWsOpen);
-        this._ws_control.addEventListener("message", this.onWsControlMessage);
-        this._ws_control.addEventListener("error", this.onWsError);
-        this._ws_control.addEventListener("close", this.onWsClose);
-
-        this._ws_data = this._client.broadcast({ channel: Constants.ChannelName.data });
-        this._ws_data.addEventListener("open", this.onWsOpen);
-        this._ws_data.addEventListener("message", this.onWsDataMessage);
-        this._ws_data.addEventListener("error", this.onWsError);
-        this._ws_data.addEventListener("close", this.onWsClose);
+        /* WebSocket 信道 */
+        this._resetWsReady();
+        this._connectWebSockets();
 
         /* 使用 CRDT 算法同步的数据 */
         this._y_doc = new Y.Doc({
@@ -356,9 +354,12 @@ export class Control {
      * 释放资源
      */
     public destroy(): void {
+        this._destroyed = true;
+        this._clearWsReconnectTimer();
+        globalThis.removeEventListener("beforeunload", this.onbeforeunload);
+        globalThis.document.removeEventListener("visibilitychange", this.onvisibilitychange);
         this._y_doc.destroy();
-        this._ws_data.close();
-        this._ws_control.close();
+        this._closeWebSockets();
     }
 
     /**
@@ -1501,16 +1502,14 @@ export class Control {
     protected async _broadcastControlMessage(
         data: any,
     ): Promise<void> {
-        await this._ready_ws;
-        this._ws_control.send(globalThis.JSON.stringify(data));
+        await this._sendWsMessage(() => this._ws_control.send(globalThis.JSON.stringify(data)));
     }
 
     /**
      * 广播更新消息
      */
     protected async _broadcastUpdateMessage(data: Uint8Array): Promise<void> {
-        await this._ready_ws;
-        this._ws_data.send(data as Uint8Array<ArrayBuffer>);
+        await this._sendWsMessage(() => this._ws_data.send(data as Uint8Array<ArrayBuffer>));
     }
 
     protected async _getOnlineClientNumber(name: string = Constants.ChannelName.data): Promise<number> {
@@ -1722,11 +1721,192 @@ export class Control {
     }
     /* eslint-enable jsdoc/check-param-names */
 
+    /**
+     * 重置 WebSocket 就绪状态
+     */
+    protected _resetWsReady(): void {
+        this.ready_ws = false;
+        this._ready_ws = new Promise<void>((resolve) => {
+            this._resolve_ws = () => {
+                if (!this.ready_ws) {
+                    this.ready_ws = true;
+                    resolve();
+                }
+            };
+        });
+    }
+
+    /**
+     * 重置已完成的 WebSocket 就绪状态
+     */
+    protected _resetResolvedWsReady(): void {
+        if (this.ready_ws) {
+            this._resetWsReady();
+        }
+    }
+
+    /**
+     * 连接 WebSocket 信道
+     */
+    protected _connectWebSockets(): void {
+        this._ws_control = this._client.broadcast({ channel: Constants.ChannelName.control });
+        this._ws_control.addEventListener("open", this.onWsOpen);
+        this._ws_control.addEventListener("message", this.onWsControlMessage);
+        this._ws_control.addEventListener("error", this.onWsError);
+        this._ws_control.addEventListener("close", this.onWsClose);
+
+        this._ws_data = this._client.broadcast({ channel: Constants.ChannelName.data });
+        this._ws_data.addEventListener("open", this.onWsOpen);
+        this._ws_data.addEventListener("message", this.onWsDataMessage);
+        this._ws_data.addEventListener("error", this.onWsError);
+        this._ws_data.addEventListener("close", this.onWsClose);
+    }
+
+    /**
+     * 关闭 WebSocket 信道
+     */
+    protected _closeWebSockets(): void {
+        this._closeWebSocket(this._ws_control);
+        this._closeWebSocket(this._ws_data);
+    }
+
+    /**
+     * 关闭 WebSocket 并移除监听器
+     * @param ws - WebSocket 实例
+     */
+    protected _closeWebSocket(ws?: WebSocket): void {
+        if (!ws) {
+            return;
+        }
+
+        ws.removeEventListener("open", this.onWsOpen);
+        ws.removeEventListener("message", this.onWsControlMessage);
+        ws.removeEventListener("message", this.onWsDataMessage);
+        ws.removeEventListener("error", this.onWsError);
+        ws.removeEventListener("close", this.onWsClose);
+
+        switch (ws.readyState) {
+            case WebSocket.CONNECTING:
+            case WebSocket.OPEN:
+                ws.close();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * 清除 WebSocket 重连定时器
+     */
+    protected _clearWsReconnectTimer(): void {
+        if (this._ws_reconnect_timer) {
+            clearTimeout(this._ws_reconnect_timer);
+            this._ws_reconnect_timer = null;
+        }
+    }
+
+    /**
+     * 判断 WebSocket 是否已关闭或正在关闭
+     * @param ws - WebSocket 实例
+     */
+    protected _isWsClosed(ws: WebSocket): boolean {
+        return ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED;
+    }
+
+    /**
+     * 调度 WebSocket 重连
+     */
+    protected _scheduleWsReconnect(): void {
+        if (this._destroyed || this._ws_reconnect_timer) {
+            return;
+        }
+
+        this._resetResolvedWsReady();
+        this._closeWebSockets();
+
+        const delay = Math.min(
+            Control.WS_RECONNECT_DELAY_MIN * 2 ** this._ws_reconnect_attempt,
+            Control.WS_RECONNECT_DELAY_MAX,
+        );
+        this._ws_reconnect_attempt += 1;
+        this._ws_reconnect_timer = setTimeout(() => {
+            this._ws_reconnect_timer = null;
+            if (this._destroyed) {
+                return;
+            }
+
+            this._connectWebSockets();
+        }, delay);
+    }
+
+    /**
+     * 等待 WebSocket 可发送
+     */
+    protected async _waitWsReady(): Promise<void> {
+        if (this._destroyed) {
+            return;
+        }
+
+        if (this._isWsClosed(this._ws_control) || this._isWsClosed(this._ws_data)) {
+            this._scheduleWsReconnect();
+        }
+        await this._ready_ws;
+    }
+
+    /**
+     * 发送 WebSocket 消息
+     * @param send - 消息发送函数
+     */
+    protected async _sendWsMessage(send: () => void): Promise<void> {
+        if (this._destroyed) {
+            return;
+        }
+
+        await this._waitWsReady();
+        if (this._destroyed) {
+            return;
+        }
+
+        try {
+            send();
+        }
+        catch (error) {
+            this._logger.error(error);
+            this._scheduleWsReconnect();
+            if (this._destroyed) {
+                return;
+            }
+
+            await this._ready_ws;
+            if (this._destroyed) {
+                return;
+            }
+
+            send();
+        }
+    }
+
+    /**
+     * WebSocket 重连后同步状态与数据
+     */
+    protected async _syncAfterWsReconnect(): Promise<void> {
+        await Promise.all([
+            this._sendCurrentUserState(),
+            this._broadcastLoadMessage(),
+        ]);
+    }
+
     protected readonly onWsOpen = (_e: Event) => {
         // this._logger.info(e);
 
         if (this._ws_control.readyState === WebSocket.OPEN && this._ws_data.readyState === WebSocket.OPEN) {
+            const reconnected = this.ready && this._ws_ready_count > 0 && !this.ready_ws;
             this._resolve_ws();
+            this._ws_reconnect_attempt = 0;
+            this._ws_ready_count += 1;
+            if (reconnected) {
+                this._syncAfterWsReconnect().catch((error) => this._logger.error(error));
+            }
         }
     };
 
@@ -1771,6 +1951,8 @@ export class Control {
 
     protected readonly onWsClose = (_e: CloseEvent) => {
         // this._logger.info(e);
+
+        this._scheduleWsReconnect();
     };
 
     /**
