@@ -1,0 +1,20 @@
+src/messages/control.ts
+  s_8f60d1272f27e3::t_45440ffec33cfb 138,144-149,177-179,221-223,357-360,362,1505,1512,1724-1845,1850-1860,1865,1870-1875,1880,1885-1898,1903,1905-1909,1954-1955
+  s_8f60d1272f27e3::t_2124eb3722e065 1846-1849,1861-1864,1866-1869,1876-1879,1881-1884
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "13d34cdd21ef0f12b637898a2f11fef284deb326",
+  "prompts": {},
+  "sessions": {
+    "s_8f60d1272f27e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f9343-4bdd-7d42-9561-19cc3a93d398",
+        "model": "gpt-5.5-2026-04-24"
+      },
+      "human_author": "Yingyi / 颖逸 <49649786+Zuoqiu-Yingyi@users.noreply.github.com>"
+    }
+  }
+}
