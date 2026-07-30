@@ -1,0 +1,19 @@
+release-please-config.json
+  s_9b845c27a80cac::t_8a183e9cc7cc0a 3-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "af98ae7053ff5a6736cd0e08e2079e7bd406ce9b",
+  "prompts": {},
+  "sessions": {
+    "s_9b845c27a80cac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74183ff4-0840-40e8-af07-cff7c593d1da",
+        "model": "claude-glm-5.2"
+      },
+      "human_author": "Yingyi / 颖逸 <49649786+Zuoqiu-Yingyi@users.noreply.github.com>"
+    }
+  }
+}
