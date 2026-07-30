@@ -27,18 +27,18 @@
     ],
     "displayName": {
         "default": "Inbox",
-        "zh_CN": "收集箱",
-        "zh_CHT": "收集箱"
+        "zh-CN": "收集箱",
+        "zh-TW": "收集箱"
     },
     "description": {
         "default": "Chatroom style inbox, support multiple different devices in the local area network to share information through the browser.",
-        "zh_CN": "聊天室样式的内容收集箱，支持局域网中多个不同的设备通过浏览器共享信息。",
-        "zh_CHT": "聊天室樣式的內容收集箱，支持局域網中多個不同的設備通過瀏覽器共享信息。"
+        "zh-CN": "聊天室样式的内容收集箱，支持局域网中多个不同的设备通过浏览器共享信息。",
+        "zh-TW": "聊天室樣式的內容收集箱，支持局域網中多個不同的設備通過瀏覽器共享信息。"
     },
     "readme": {
         "default": "README.md",
-        "zh_CN": "README_zh_CN.md",
-        "zh_CHT": "README_zh_CN.md"
+        "zh-CN": "README.zh-CN.md",
+        "zh-TW": "README.zh-CN.md"
     },
     "funding": {
         "openCollective": "",
