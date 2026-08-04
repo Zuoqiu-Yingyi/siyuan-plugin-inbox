@@ -49,7 +49,7 @@ export const userConfigFn: UserConfigFnObject = function (env) {
             emptyOutDir: true,
             copyPublicDir: true,
             lib: {
-                entry: resolve(__dirname, "src/index.ts"),
+                entry: resolve(import.meta.dirname, "src/index.ts"),
                 fileName: "index",
                 formats: ["cjs"],
             },
@@ -59,7 +59,7 @@ export const userConfigFn: UserConfigFnObject = function (env) {
                     /^@electron\/.*$/,
                 ],
                 input: {
-                    index: resolve(__dirname, "src/index.ts"),
+                    index: resolve(import.meta.dirname, "src/index.ts"),
                 },
                 output: {
                     entryFileNames: (chunkInfo) => {

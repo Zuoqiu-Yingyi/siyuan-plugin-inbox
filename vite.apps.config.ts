@@ -232,7 +232,7 @@ export const userConfigFn: UserConfigFnObject = function (env) {
             copyPublicDir: false,
             rolldownOptions: {
                 input: {
-                    index: resolve(__dirname, "./index.html"),
+                    index: resolve(import.meta.dirname, "./index.html"),
                 },
                 output: {
                     entryFileNames: (entryInfo) => {
