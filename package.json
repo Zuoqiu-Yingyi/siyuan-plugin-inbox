@@ -28,6 +28,6 @@
         "videojs-record": "^4.8.0",
         "vite-plugin-pwa": "^1.3.0",
         "vue-advanced-chat": "^2.1.2",
-        "yjs": "^13.6.31"
+        "yjs": "^13.6.32"
     }
 }
