@@ -128,6 +128,15 @@ export default class InboxPlugin extends siyuan.Plugin {
     public override onunload(): void {
     }
 
+    /**
+     * 未覆盖该方法时, 思源会在插件自身存储目录发生变化后重新加载整个插件;
+     * 而收件箱面板挂载后, `Control.load()` 读取数据写入 Yjs 文档会触发 `save()` 无条件回写 storage,
+     * 从而导致 "写入 → 触发重载 → 面板重新挂载再次写入" 的无限重载循环
+     */
+    public override onDataChanged(): void {
+        // 数据变更均由本插件自身写入触发, 无需重新加载插件
+    }
+
     public override openSetting(): void {
         const dialog = new siyuan.Dialog({
             title: `${this.displayName} <code class="fn__code">${this.name}</code>`,
