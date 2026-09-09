@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.3](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.2...v0.2.3) (2026-09-09)
+
+
+### Miscellaneous
+
+* add release-as field to release-please-config ([af98ae7](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/af98ae7053ff5a6736cd0e08e2079e7bd406ce9b))
+* release v0.2.3 ([79bfb09](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/79bfb097faf1e3c3200f7606158025af2b2efbf8))
+* update yjs dependency to version 13.6.32 ([4fc2ef5](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/4fc2ef5259731fb8a4ae0041056e65665bd7baa7))
+* **version:** bump version to 0.2.3 in package.json and plugin.json ([c0ad9a9](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/c0ad9a90b7b9f1a0baf30787e19b9e0d9a481f67))
+* **vite:** update entry resolution to use import.meta.dirname ([506170e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/506170eec90593dd6f3f3d5d8a1aec9bd2716ae7))
+
+
+### Continuous Integration
+
+* **build:** streamline Node.js setup by replacing setup-node with pnpm setup in build workflow ([b0acde9](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/b0acde98d7cb74f3cc08998ff8d83310e754932f))
+
+
+### Bug Fixes
+
+* override onDataChanged to prevent infinite plugin reload loop ([863dd34](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/863dd343c71f0ed32c5ef2b465cbf05b45ea04f5))
+* **Settings:** add svelte-ignore directive for local state reference ([c5784a4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/c5784a4d09fdfa1490ef1f83d8e8937e91640556))
+
+
+### Code Refactoring
+
+* **i18n:** refactor multilingual support with updated language files and README links ([1a6d1f9](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/1a6d1f9f60f4a74120cb2a0cfbf5907c3cd4b516))
+
+
+### Styles
+
+* **i18n:** correct import order for zh_Hant language type ([2295d22](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/commit/2295d221fb21599a38ca561fcc589e6f078cb046))
+
 ## [0.2.2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-inbox/compare/v0.2.1...v0.2.2) (2026-07-24)
 
 
