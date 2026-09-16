@@ -1,0 +1,21 @@
+src/components/InboxDock.svelte
+  s_375e4a819920b7::t_0aa0a59f39335a 38,41-42
+src/vite-env.d.ts
+  s_375e4a819920b7::t_3ce34bca487798 5-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.44-trip",
+  "base_commit_sha": "42b1a9b32ea5e1cf94e7437c0a4d34518641ab26",
+  "prompts": {},
+  "sessions": {
+    "s_375e4a819920b7": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_vmnj8i26q86q",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Yingyi / 颖逸 <49649786+Zuoqiu-Yingyi@users.noreply.github.com>"
+    }
+  }
+}
