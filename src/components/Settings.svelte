@@ -77,24 +77,26 @@
 <Panels
     focus={panels_focus_key}
     {panels}
-    let:focus={focusPanel}
 >
-    <!-- 常规设置面板 -->
-    <Panel display={panels[0]?.key === focusPanel}>
-        <!-- 重置设置 -->
-        <Item
-            text={i18n.settings.generalSettings.reset.description}
-            title={i18n.settings.generalSettings.reset.title}
-        >
-            <Input
-                slot="input"
-                settingKey="Reset"
-                settingValue={i18n.settings.generalSettings.reset.text}
-                type={ItemType.button}
-                on:clicked={resetOptions}
-            />
-        </Item>
-    </Panel>
+    {#snippet children(focusPanel)}
+        <!-- 常规设置面板 -->
+        <Panel display={panels[0]?.key === focusPanel}>
+            <!-- 重置设置 -->
+            <Item
+                text={i18n.settings.generalSettings.reset.description}
+                title={i18n.settings.generalSettings.reset.title}
+            >
+                {#snippet input()}
+                    <Input
+                        onClicked={resetOptions}
+                        settingKey="Reset"
+                        settingValue={i18n.settings.generalSettings.reset.text}
+                        type={ItemType.button}
+                    />
+                {/snippet}
+            </Item>
+        </Panel>
+    {/snippet}
 </Panels>
 
 <style lang="less">
