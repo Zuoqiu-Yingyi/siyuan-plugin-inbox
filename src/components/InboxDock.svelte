@@ -35,9 +35,11 @@
         plugin,
     }: IProps = $props();
 
+    // svelte-ignore state_referenced_locally
     const url = new URL(src, globalThis.document.baseURI);
 
-    /* 标题栏配置 */
+    /* 标题栏配置 (仅使用属性的初值播种, 后续状态由 BlockIcon 的 store 维护) */
+    // svelte-ignore state_referenced_locally
     const bar: IBar = {
         logo: "#icon-inbox",
         title: plugin.displayName,
